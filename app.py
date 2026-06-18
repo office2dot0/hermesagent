@@ -255,6 +255,17 @@ async def on_text(update, ctx):
                 await update.message.reply_text(f"Napaka pri koledarju: {e}")
 
 
+async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE):
+    log.exception("Handler error: %s", ctx.error)
+    try:
+        if isinstance(update, Update) and update.effective_chat:
+            await ctx.bot.send_message(
+                update.effective_chat.id,
+                "Prišlo je do napake, a sem še tu. Poskusi znova. 🙏")
+    except Exception:
+        pass
+
+
 def register_handlers(app):
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("find", find_cmd))
@@ -266,6 +277,7 @@ def register_handlers(app):
     app.add_handler(CallbackQueryHandler(on_bulk, pattern=r"^bulk:"))
     app.add_handler(CallbackQueryHandler(on_button, pattern=r"^(send|skip):"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
+    app.add_error_handler(on_error)
 
 
 def run_webhook():
