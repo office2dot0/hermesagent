@@ -1,1 +1,11 @@
-# hermesagent
+---
+title: Hermes Agent
+emoji: ✉️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
+Telegram B2B outreach agent.
