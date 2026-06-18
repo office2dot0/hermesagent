@@ -1,9 +1,0 @@
-async def on_error(update: object, ctx: ContextTypes.DEFAULT_TYPE):
-    log.exception("Handler error: %s", ctx.error)
-    try:
-        if isinstance(update, Update) and update.effective_chat:
-            await ctx.bot.send_message(
-                update.effective_chat.id,
-                "Prišlo je do napake, a sem še tu. Poskusi znova. 🙏")
-    except Exception:
-        pass
