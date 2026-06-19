@@ -1,5 +1,8 @@
 import json
+import logging
 from agent import _llm, LLMUnavailable
+
+log = logging.getLogger("hermes.brain")
 
 ROUTER_SYSTEM = """You are Hermes, a multilingual assistant for B2B lead generation and outreach.
 
@@ -8,9 +11,9 @@ LANGUAGE: Detect the language of the user's message and ALWAYS write "reply" in 
 UNDERSTANDING: Interpret intent from natural, informal phrasing, typos, and mixed languages. Examples:
 - "najdi mi frizerske salone v Mariboru" -> find (niche=frizerski salon, location=Maribor)
 - "daj jih v tabelo" / "shrani v excel" -> export_sheet
-- "napiši osnutke" / "pripravi maile" -> draft
-- "pošlji vse" -> send_all
-- "pokaži osnutek" -> preview
+- "napisi osnutke" / "pripravi maile" -> draft
+- "poslji vse" -> send_all
+- "pokazi osnutek" -> preview
 - "dodaj sestanek jutri ob 15h" -> create_event
 - greetings, questions, anything else -> chat
 
@@ -34,8 +37,8 @@ RULES:
 def route(user_text: str) -> dict:
     try:
         raw = _llm(user_text, system=ROUTER_SYSTEM)
-    except LLMUnavailable:
-        # Don't crash; tell the user the model is busy.
+    except LLMUnavailable as e:
+        log.error("LLM unavailable: %s", e)   # full provider errors land in Railway logs
         return {"action": "chat", "params": {},
                 "reply": "Model je trenutno zaseden (omejitev brezplačnega dostopa). "
                          "Poskusi znova čez minuto. 🙏"}
