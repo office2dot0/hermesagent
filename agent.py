@@ -1,8 +1,17 @@
 import json
+import logging
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from config import (USE_OPENROUTER, OPENROUTER_API_KEY, OPENROUTER_MODEL,
                     HF_TOKEN, HF_MODEL, DEFAULT_LANGUAGE, SENDER_NAME)
+
+log = logging.getLogger("hermes.agent")
+
+# Print exactly what config the running container is using (ground truth).
+log.info(
+    "Using OpenRouter model: %s | HF model: %s | USE_OPENROUTER=%s | key set=%s",
+    OPENROUTER_MODEL, HF_MODEL, USE_OPENROUTER, bool(OPENROUTER_API_KEY),
+)
 
 
 class RateLimited(Exception):
@@ -49,7 +58,6 @@ def _openrouter(system: str, prompt: str) -> str:
     reraise=True,
 )
 def _hf(system: str, prompt: str) -> str:
-    # Current HF Router (OpenAI-compatible). Old api-inference endpoint is deprecated.
     r = httpx.post(
         "https://router.huggingface.co/v1/chat/completions",
         headers={"Authorization": f"Bearer {HF_TOKEN}"},
@@ -64,7 +72,6 @@ def _hf(system: str, prompt: str) -> str:
 
 
 def _llm(prompt: str, system: str = SYSTEM) -> str:
-    """Try OpenRouter, then HF. Raise LLMUnavailable if both fail."""
     errors = []
     if USE_OPENROUTER and OPENROUTER_API_KEY:
         try:
