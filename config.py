@@ -30,6 +30,9 @@ EMAIL_BRIDGE_SECRET = os.getenv("EMAIL_BRIDGE_SECRET", "")
 GMAIL_USER = os.getenv("GMAIL_USER", "")
 MAIL_APP_PASSWORD = os.getenv("MAIL_APP_PASSWORD", "")
 
+# Lead scraping
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
+
 REQUIRE_SEND_CONFIRMATION = _b("REQUIRE_SEND_CONFIRMATION", True)
 DEFAULT_LANGUAGE = os.getenv("DEFAULT_LANGUAGE", "slovenian")
 MAX_LEAD_PAGES = int(os.getenv("MAX_LEAD_PAGES", "3"))
@@ -40,6 +43,6 @@ DAILY_SEND_CAP = int(os.getenv("DAILY_SEND_CAP", "200"))
 SENDER_NAME = os.getenv("SENDER_NAME", GMAIL_USER)
 
 # Deployment mode
-SPACE_HOST = os.getenv("SPACE_HOST", "")          # e.g. yourname-hermes.hf.space
-WEBHOOK_PORT = int(os.getenv("PORT", "7860"))     # HF=7860, Railway sets PORT
-USE_WEBHOOK = _b("USE_WEBHOOK", False)            # keep false on Railway (polling)
+SPACE_HOST = os.getenv("SPACE_HOST", "")
+WEBHOOK_PORT = int(os.getenv("PORT", "7860"))
+USE_WEBHOOK = _b("USE_WEBHOOK", False)
