@@ -15,7 +15,7 @@ from config import (
 )
 from db import Session, Lead, sent_today, bump_sent
 from agent import draft_email
-from leads import find_leads
+from leads import find_leads, LeadSearchError
 from mailer import send_email
 from brain import route
 from gservices import append_leads_to_sheet, create_calendar_event
@@ -65,16 +65,22 @@ async def find_cmd(update, ctx):
         return await update.message.reply_text("Uporaba: /find niša | lokacija")
     niche, location = [x.strip() for x in arg.split("|", 1)]
     await update.message.reply_text(f"Iščem: {niche} v {location} …")
-    leads = await asyncio.to_thread(find_leads, niche, location)
+    try:
+        leads = await asyncio.to_thread(find_leads, niche, location)
+    except LeadSearchError:
+        return await update.message.reply_text(
+            "Iskalnik je trenutno omejen (preveč zahtev). Počakaj minuto in poskusi znova. 🙏")
     added = await asyncio.to_thread(_store_leads, leads)
+    if not leads:
+        return await update.message.reply_text(
+            "Nisem našel kontaktov. Poskusi drugo nišo ali lokacijo.")
     await update.message.reply_text(f"Najdenih {len(leads)}, novih shranjenih: {added}.")
-    if leads:
-        try:
-            res = await asyncio.to_thread(append_leads_to_sheet, leads)
-            url = res.get("url", "")
-            await update.message.reply_text("Dodano v Google tabelo. ✅" + (f"\n{url}" if url else ""))
-        except Exception as e:
-            await update.message.reply_text(f"Tabela ni uspela: {e}")
+    try:
+        res = await asyncio.to_thread(append_leads_to_sheet, leads)
+        url = res.get("url", "")
+        await update.message.reply_text("Dodano v Google tabelo. ✅" + (f"\n{url}" if url else ""))
+    except Exception as e:
+        await update.message.reply_text(f"Tabela ni uspela: {e}")
 
 
 async def draft_cmd(update, ctx):
@@ -205,16 +211,23 @@ async def on_text(update, ctx):
         await update.message.reply_text(reply)
 
     if action == "find" and p.get("niche") and p.get("location"):
-        leads = await asyncio.to_thread(find_leads, p["niche"], p["location"])
+        try:
+            leads = await asyncio.to_thread(find_leads, p["niche"], p["location"])
+        except LeadSearchError:
+            return await update.message.reply_text(
+                "Iskalnik je trenutno omejen (preveč zahtev). Počakaj minuto in poskusi znova. 🙏")
         added = await asyncio.to_thread(_store_leads, leads)
+        if not leads:
+            return await update.message.reply_text(
+                "Nisem našel kontaktov. Poskusi drugo nišo ali lokacijo.")
         await update.message.reply_text(f"Najdenih {len(leads)}, novih: {added}.")
-        if leads:
-            try:
-                res = await asyncio.to_thread(append_leads_to_sheet, leads)
-                url = res.get("url", "")
-                await update.message.reply_text("Dodano v tabelo. ✅" + (f"\n{url}" if url else ""))
-            except Exception as e:
-                await update.message.reply_text(f"Tabela ni uspela: {e}")
+        try:
+            res = await asyncio.to_thread(append_leads_to_sheet, leads)
+            url = res.get("url", "")
+            await update.message.reply_text("Dodano v tabelo. ✅" + (f"\n{url}" if url else ""))
+        except Exception as e:
+            await update.message.reply_text(f"Tabela ni uspela: {e}")
+
     elif action == "export_sheet":
         with Session() as s:
             rows = [{"name": l.name, "email": l.email, "website": l.website,
@@ -229,13 +242,17 @@ async def on_text(update, ctx):
                 f"Vnesel {res.get('count', 0)} vrstic v tabelo." + (f"\n{url}" if url else ""))
         except Exception as e:
             await update.message.reply_text(f"Napaka pri izvozu: {e}")
+
     elif action == "draft":
         ctx.args = (p.get("offer") or "kratka predstavitev sodelovanja").split()
         await draft_cmd(update, ctx)
+
     elif action == "preview":
         await preview_cmd(update, ctx)
+
     elif action == "send_all":
         await sendall_cmd(update, ctx)
+
     elif action == "create_event":
         start_iso = p.get("start"); end_iso = p.get("end")
         if not _valid_iso(start_iso):
